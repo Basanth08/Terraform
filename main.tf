@@ -131,5 +131,241 @@ resource "aws_security_group" "jenkins_sg" {
         protocol = "-1"
         cidr_blocks = ["0.0.0.0/0"]
     }
-    tags = "Jenkins SG"
+    tags = {
+        Name = "Jenkins SG"
+    }
+}
+
+# create Sonarqube Security group
+resource "aws_security_group" "sonarqube_sg" {
+    name= "Sonarqube SG"
+    description = "Allow ports 9090 and 22"
+    vpc_id = aws_vpc.production_vpc.id
+
+    ingress{
+        description = "Sonarqube"
+        from_port = var.sonarqube_port
+        to_port = var.sonarqube_port
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+        ingress{
+        description = "SSH"
+        from_port = var.ssh_port
+        to_port = var.ssh_port
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    tags = {
+        Name = "Sonarqube SG" 
+    }
+}
+
+# Create Ansible Security group
+resource "aws_security_group" "ansible_sg" {
+    name= "Ansible SG"
+    description = "Allow ports 22"
+    vpc_id = aws_vpc.production_vpc.id
+    ingress{
+        description = "SSH"
+        from_port = var.ssh_port
+        to_port = var.ssh_port
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    tags = {
+        Name = "Ansible SG"
+    }
+}
+# Create Grafana Security group
+resource "aws_security_group" "grafana_sg" {
+    name= "Grafana SG"
+    description = "Allow ports 3000 and 22"
+    vpc_id = aws_vpc.production_vpc.id
+    ingress{
+        description = "Grafana"
+        from_port = var.grafana_port
+        to_port = var.grafana_port
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    ingress{
+        description = "SSH"
+        from_port = var.ssh_port
+        to_port = var.ssh_port
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    tags = {
+        Name = "Grafana SG"
+    }
+}
+# Create Application Security group
+resource "aws_security_group" "app_sg" {
+    name= "Application SG"
+    description = "Allow ports 80 and 22"
+    vpc_id = aws_vpc.production_vpc.id
+    ingress{
+        description = "Grafana"
+        from_port = var.http_port
+        to_port = var.http_port
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    ingress{
+        description = "SSH"
+        from_port = var.ssh_port
+        to_port = var.ssh_port
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    tags = {
+        Name = "Application SG"
+    }
+}
+# Create LoadBalancer Security group
+resource "aws_security_group" "lb_sg" {
+    name= "LoadBalancer SG"
+    description = "Allow ports 80"
+    vpc_id = aws_vpc.production_vpc.id
+    ingress{
+        description = "LoadBalancer"
+        from_port = var.http_port
+        to_port = var.http_port
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    tags = {
+        Name = "LoadBalancer SG"
+    }
+}
+
+# create the ACL
+resource "aws_network_acl" "nacl" {
+    vpc_id = aws_vpc.production_vpc.id
+    subnet_ids = [aws_subnet.public_subnet1.id,aws_subnet.public_subnet2.id,aws_subnet.private_subnet.id]
+    egress{
+        protocol ="tcp"
+        rule_no = "100"
+        action = "allow"
+        cidr_block = var.vpc_cidr
+        from_port = 0
+        to_port = 0
+    }
+    ingress{
+        protocol ="tcp"
+        rule_no = "100"
+        action = "allow"
+        cidr_block = var.all_cidr
+        from_port = var.http_port
+        to_port = var.http_port
+    }
+        ingress{
+        protocol ="tcp"
+        rule_no = "101"
+        action = "allow"
+        cidr_block = var.all_cidr
+        from_port = var.ssh_port
+        to_port = var.ssh_port
+    }
+        ingress{
+        protocol ="tcp"
+        rule_no = "102"
+        action = "allow"
+        cidr_block = var.all_cidr
+        from_port = var.jenkins_port
+        to_port = var.jenkins_port
+    }
+        ingress{
+        protocol ="tcp"
+        rule_no = "103"
+        action = "allow"
+        cidr_block = var.all_cidr
+        from_port = var.sonarqube_port
+        to_port = var.sonarqube_port
+    }
+        ingress{
+        protocol ="tcp"
+        rule_no = "104"
+        action = "allow"
+        cidr_block = var.all_cidr
+        from_port = var.grafana_port
+        to_port = var.grafana_port
+    }
+    tags ={
+        Name = "Main ACL"
+    }
+}
+# create the ECR repository
+resource "aws_ecr_repository" "ecr_repo" {
+    name = "docker_repository"
+
+    image_scanning_configuration {
+      scan_on_push = true
+    }
+}
+
+resource "aws_key_pair" "auth_key" {
+  key_name = var.key_name
+  public_key = var.key_value
+}
+/*
+# create s3 bucket for storing terraform state
+resource "aws_s3_bucket" "devops_project_terraform_state_b" {
+    bucket = "devops-project-terraform-state-b"  # Fixed naming
+    
+    tags = {
+        Name = "Terraform state bucket"
+    }
+}
+
+# Separate versioning resource (new syntax)
+resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
+  bucket = aws_s3_bucket.devops_project_terraform_state_b.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+*/
+
+# Backend config - KEEP COMMENTED OUT for now
+terraform {
+    backend "s3" {
+        bucket = "devops-project-terraform-state-b"
+        key    = "prod/terraform.tfstate"
+        region = "us-east-1"
+    }
 }
