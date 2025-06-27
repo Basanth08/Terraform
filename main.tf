@@ -279,7 +279,15 @@ resource "aws_network_acl" "nacl" {
         protocol ="tcp"
         rule_no = "100"
         action = "allow"
-        cidr_block = var.vpc_cidr
+        cidr_block = var.all_cidr
+        from_port = 0
+        to_port = 0
+    }
+    egress{
+        protocol = "-1"
+        rule_no = "200"
+        action = "allow"
+        cidr_block = var.all_cidr
         from_port = 0
         to_port = 0
     }
@@ -323,6 +331,14 @@ resource "aws_network_acl" "nacl" {
         from_port = var.grafana_port
         to_port = var.grafana_port
     }
+    ingress{
+    protocol = "tcp"
+    rule_no = "300"
+    action = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port = 1024    # Ephemeral ports for return traffic
+    to_port = 65535
+}
     tags ={
         Name = "Main ACL"
     }
