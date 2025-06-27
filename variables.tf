@@ -40,3 +40,9 @@ variable "key_name"{
 variable "key_value"{
     type = string
 }
+variable "linux2_ami"{
+    type = string
+}
+variable "micro_instance"{
+    type = string
+}

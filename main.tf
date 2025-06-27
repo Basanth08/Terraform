@@ -1,10 +1,8 @@
-/*# Initiate the provider
+# Initiate the provider
 provider "aws"{
     region = var.region
-    access_key = 
-    secret_key = 
 }
-*/
+
 # Create the vpc
 resource "aws_vpc" "production_vpc" {
   cidr_block = var.vpc_cidr
@@ -342,6 +340,7 @@ resource "aws_key_pair" "auth_key" {
   key_name = var.key_name
   public_key = var.key_value
 }
+
 /*
 # create s3 bucket for storing terraform state
 resource "aws_s3_bucket" "devops_project_terraform_state_b" {
@@ -361,11 +360,27 @@ resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
 }
 */
 
-# Backend config - KEEP COMMENTED OUT for now
+/*
+# Backend config 
 terraform {
     backend "s3" {
         bucket = "devops-project-terraform-state-b"
         key    = "prod/terraform.tfstate"
         region = "us-east-1"
     }
+}
+*/
+# creating the jenkins instance
+resource "aws_instance" "Jenkins" {
+    ami = var.linux2_ami
+    instance_type = var.micro_instance
+    availability_zone = var.availability_zone
+    subnet_id = aws_subnet.public_subnet1.id
+    key_name = var.key_name
+    vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
+    user_data = file("jenkins_install.sh")
+    tags = {
+      Name = "Jenkins"
+    }
+
 }
