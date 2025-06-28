@@ -398,5 +398,109 @@ resource "aws_instance" "Jenkins" {
     tags = {
       Name = "Jenkins"
     }
+}
 
+# create the SonarQube instance
+resource "aws_instance" "SonarQube" {
+    ami = var.ubuntu_ami
+    instance_type = var.small_instance
+    availability_zone = var.availability_zone
+    subnet_id = aws_subnet.public_subnet1.id
+    key_name = var.key_name
+    vpc_security_group_ids = [aws_security_group.sonarqube_sg.id]
+    tags = {
+      Name = "Sonarqube"
+    }
+}
+
+# creating the ansible instance
+resource "aws_instance" "Ansible" {
+    ami = var.linux2_ami
+    instance_type = var.micro_instance
+    availability_zone = var.availability_zone
+    subnet_id = aws_subnet.public_subnet1.id
+    key_name = var.key_name
+    vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
+    user_data = file("ansible_install.sh")
+    tags = {
+      Name = "Ansible"
+    }
+}
+
+# Use Launch Template
+resource "aws_launch_template" "app-launch-template" {
+    name_prefix   = "app-launch-template"
+    image_id      = var.linux2_ami
+    instance_type = var.micro_instance
+    key_name      = var.key_name
+
+    vpc_security_group_ids = [aws_security_group.app_sg.id]
+
+    # Enhanced security
+    metadata_options {
+        http_endpoint = "enabled"
+        http_tokens   = "required"  # Require IMDSv2
+    }
+
+    tag_specifications {
+        resource_type = "instance"
+        tags = {
+            Name = "App-Instance"
+            Environment = "production"
+        }
+    }
+}
+
+# Auto Scaling Group using Launch Template
+resource "aws_autoscaling_group" "app-asg" {
+    name                = "app-asg"
+    vpc_zone_identifier = [aws_subnet.public_subnet1.id, aws_subnet.public_subnet2.id]  # Fixed: Added .id to first subnet
+    min_size            = 1
+    max_size            = 3
+    desired_capacity    = 2
+    health_check_type   = "ELB"
+    target_group_arns   = [aws_lb_target_group.app-target-group.arn]
+    
+    launch_template {
+        id      = aws_launch_template.app-launch-template.id
+        version = "$Latest"
+    }
+
+    tag {
+        key                 = "Name"
+        value               = "App-ASG-Instance"
+        propagate_at_launch = true
+    }
+}
+
+# Load Balancer Target Group
+resource "aws_lb_target_group" "app-target-group" {
+    name        = "app-target-group"
+    port        = 80
+    protocol    = "HTTP"
+    vpc_id      = aws_vpc.production_vpc.id
+    target_type = "instance"
+    
+    # Health check configuration
+    health_check {
+        enabled             = true
+        healthy_threshold   = 2
+        unhealthy_threshold = 2
+        timeout             = 5
+        interval            = 30
+        path                = "/"
+        matcher             = "200"
+        protocol            = "HTTP"
+        port                = "traffic-port"
+    }
+
+    tags = {
+        Name = "app-target-group"
+    }
+}
+
+# Auto Scaling Attachment (Optional - target_group_arns in ASG already handles this)
+resource "aws_autoscaling_attachment" "autoscaling-attachment" {
+    autoscaling_group_name = aws_autoscaling_group.app-asg.id
+    lb_target_group_arn    = aws_lb_target_group.app-target-group.arn  # Fixed: Changed from alb_target_group_arn
 }
