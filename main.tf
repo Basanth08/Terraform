@@ -524,3 +524,79 @@ resource "aws_lb_listener" "app-listener" {
         target_group_arn = aws_lb_target_group.app-target-group.arn
     }
 }
+# Create the Grafana instance
+resource "aws_instance" "Grafana" {
+    ami = var.linux2_ami
+    instance_type = var.micro_instance
+    availability_zone = var.availability_zone
+    subnet_id = aws_subnet.public_subnet1.id
+    key_name = var.key_name
+    vpc_security_group_ids = [aws_security_group.grafana_sg.id]
+    user_data = file("grafana_install.sh")
+    
+    tags = {
+      Name = "Grafana"
+    }
+}
+# resource "aws_instance" "Grafana" {
+#     ami                    = var.linux2_ami
+#     instance_type          = var.micro_instance
+#     availability_zone      = var.availability_zone
+#     subnet_id             = aws_subnet.public_subnet1.id
+#     key_name              = var.key_name
+#     vpc_security_group_ids = [aws_security_group.grafana_sg.id]
+    
+#     user_data = file("grafana_install.sh")
+    
+#     # Add root volume configuration
+#     root_block_device {
+#         volume_type = "gp3"
+#         volume_size = 20
+#         encrypted   = true
+#     }
+    
+#     tags = {
+#         Name = "Grafana"
+#         Purpose = "Monitoring"
+#     }
+# }
+
+# # Security Group for Grafana
+# resource "aws_security_group" "grafana_sg" {
+#     name_prefix = "grafana-sg"
+#     vpc_id      = aws_vpc.production_vpc.id
+
+#     # Allow Grafana web interface
+#     ingress {
+#         from_port   = 3000
+#         to_port     = 3000
+#         protocol    = "tcp"
+#         cidr_blocks = ["0.0.0.0/0"]
+#     }
+
+#     # Allow SSH
+#     ingress {
+#         from_port   = 22
+#         to_port     = 22
+#         protocol    = "tcp"
+#         cidr_blocks = ["0.0.0.0/0"]
+#     }
+
+#     # Allow outbound traffic
+#     egress {
+#         from_port   = 0
+#         to_port     = 0
+#         protocol    = "-1"
+#         cidr_blocks = ["0.0.0.0/0"]
+#     }
+
+#     tags = {
+#         Name = "grafana-security-group"
+#     }
+# }
+
+# # Output Grafana public IP
+# output "grafana_public_ip" {
+#     description = "Public IP address of Grafana server"
+#     value       = aws_instance.Grafana.public_ip
+# }

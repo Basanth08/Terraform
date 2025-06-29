@@ -15,3 +15,7 @@ output "ansible_public_ip" {
     description = "Public IP of Ansible Instance"
     value = aws_instance.Ansible.public_ip
 }
+output "grafana_public_ip" {
+    description = "Public IP of Grafana Instance"
+    value = aws_instance.Grafana.public_ip
+}
