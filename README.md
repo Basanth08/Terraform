@@ -89,7 +89,7 @@ grafana_port         = 3000
 http_port            = 80
 ssh_port             = 22
 key_name             = "your-key-name"
-key_value            = "ssh-rsa AAAA..."
+key_value            = "YOUR_SSH_PUBLIC_KEY_HERE"
 linux2_ami           = "ami-0abcdef1234567890"
 micro_instance       = "t2.micro"
 ubuntu_ami           = "ami-0abcdef1234567890"
@@ -200,4 +200,4 @@ terraform destroy
 
 ---
 
-> **Crafted with ❤️ by Basanth Varaganti for DevOps excellence.** 
+> **Crafted with ❤️ for DevOps excellence.** 
